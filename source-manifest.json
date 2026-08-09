@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "71ccf7a39b318fe4290264b092605814dc292bb8",
-  "ciphertextSHA256": "aaebdb26c83c5ea47edc76f20209b647f02b5be902718ca4cef44527970cf1a2",
-  "createdAt": "2026-08-09T07:27:07Z",
+  "sourceCommit": "8b6f77d0045cb30f70474565d3f9adb6560b1627",
+  "ciphertextSHA256": "6015337c3e4a1c57f2541412d4831ffb59e6356ef9a71f8871d8730b896179c8",
+  "createdAt": "2026-08-09T07:30:59Z",
   "encryption": "OpenPGP symmetric AES-256 with integrity protection",
   "includedPaths": [
+    "fixtures/api/v1",
     "ios/HomeSystem",
     "ios/HomeSystemCore",
     "scripts/export-signing-identity.swift",
