@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "71ccf7a39b318fe4290264b092605814dc292bb8",
+  "ciphertextSHA256": "aaebdb26c83c5ea47edc76f20209b647f02b5be902718ca4cef44527970cf1a2",
+  "createdAt": "2026-08-09T07:27:07Z",
+  "encryption": "OpenPGP symmetric AES-256 with integrity protection",
+  "includedPaths": [
+    "ios/HomeSystem",
+    "ios/HomeSystemCore",
+    "scripts/export-signing-identity.swift",
+    "scripts/swift-test.sh"
+  ]
+}
