@@ -7,6 +7,14 @@ on:
         description: Monotonically increasing CFBundleVersion
         required: true
         default: "19"
+      distribution:
+        description: Signing and export destination
+        required: true
+        type: choice
+        options:
+          - ad-hoc
+          - app-store
+        default: ad-hoc
 
 permissions:
   contents: read
@@ -24,6 +32,7 @@ jobs:
       XCODEGEN_VERSION: 2.45.3
       XCODEGEN_SHA256: "SHA256: 0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
       YUVA_BUILD_NUMBER: ${{ inputs.build_number }}
+      YUVA_DISTRIBUTION: ${{ inputs.distribution }}
     steps:
       - name: Check out encrypted mirror
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -141,11 +150,23 @@ jobs:
           IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
           IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
           IOS_ADHOC_PROFILE_BASE64: ${{ secrets.IOS_ADHOC_PROFILE_BASE64 }}
+          IOS_APPSTORE_PROFILE_BASE64: ${{ secrets.IOS_APPSTORE_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
           test -n "$IOS_DISTRIBUTION_P12_BASE64"
           test -n "$IOS_DISTRIBUTION_P12_PASSWORD"
-          test -n "$IOS_ADHOC_PROFILE_BASE64"
+          case "$YUVA_DISTRIBUTION" in
+            ad-hoc)
+              selected_profile="$IOS_ADHOC_PROFILE_BASE64"
+              expected_profile_name='YuVa Ad Hoc Local Key 2026'
+              ;;
+            app-store)
+              selected_profile="$IOS_APPSTORE_PROFILE_BASE64"
+              expected_profile_name='YuVa App Store 2026'
+              ;;
+            *) exit 1 ;;
+          esac
+          test -n "$selected_profile"
           keychain_path="$RUNNER_TEMP/yuva-signing.keychain-db"
           keychain_password="$(openssl rand -hex 32)"
           p12_path="$RUNNER_TEMP/yuva-distribution.p12"
@@ -154,7 +175,7 @@ jobs:
 
           echo "::add-mask::$keychain_password"
           printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$p12_path"
-          printf '%s' "$IOS_ADHOC_PROFILE_BASE64" | base64 --decode > "$profile_path"
+          printf '%s' "$selected_profile" | base64 --decode > "$profile_path"
           chmod 600 "$p12_path" "$profile_path"
 
           security cms -D -i "$profile_path" > "$profile_plist"
@@ -162,7 +183,7 @@ jobs:
           profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$profile_plist")"
           app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$profile_plist")"
           profile_expiration="$(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$profile_plist")"
-          test "$profile_name" = "YuVa Ad Hoc Local Key 2026"
+          test "$profile_name" = "$expected_profile_name"
           test "$app_identifier" = "235UP83FJ4.com.emreisik.HomeSystem"
           test -n "$profile_expiration"
 
@@ -183,6 +204,7 @@ jobs:
           mkdir -p "$profile_dir"
           cp "$profile_path" "$profile_dir/$profile_uuid.mobileprovision"
           echo "KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+          echo "YUVA_PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
 
       - name: Validate build number
         shell: bash
@@ -207,7 +229,7 @@ jobs:
             DEVELOPMENT_TEAM=235UP83FJ4 \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY='Apple Distribution' \
-            PROVISIONING_PROFILE_SPECIFIER='YuVa Ad Hoc Local Key 2026' \
+            PROVISIONING_PROFILE_SPECIFIER="$YUVA_PROFILE_NAME" \
             CURRENT_PROJECT_VERSION="$YUVA_BUILD_NUMBER" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
 
@@ -216,10 +238,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          case "$YUVA_DISTRIBUTION" in
+            ad-hoc) export_options='ExportOptions.plist' ;;
+            app-store) export_options='ExportOptionsAppStore.plist' ;;
+            *) exit 1 ;;
+          esac
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/YuVa.xcarchive" \
             -exportPath "$RUNNER_TEMP/YuVaExport" \
-            -exportOptionsPlist ExportOptions.plist
+            -exportOptionsPlist "$export_options"
           test -s "$RUNNER_TEMP/YuVaExport/YuVa.ipa"
 
       - name: Encrypt install artifact
@@ -248,7 +275,7 @@ jobs:
       - name: Upload encrypted private install artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
-          name: YuVa-ad-hoc-encrypted-${{ inputs.build_number }}
+          name: YuVa-${{ inputs.distribution }}-encrypted-${{ inputs.build_number }}
           path: ${{ runner.temp }}/YuVa.ipa.gpg
           if-no-files-found: error
           retention-days: 1
