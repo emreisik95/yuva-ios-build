@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "ac31b0dc3dce8bab4a1df64e2d392f9d587418b8",
-  "ciphertextSHA256": "2f9fa010355552425ee29e7e8fe0048e97e66f99a2e45c6a702076aaddbadba9",
-  "createdAt": "2026-08-09T20:54:52Z",
+  "sourceCommit": "5630bcbcb9307a41a75d1f64ff8dcc107e5ea74e",
+  "ciphertextSHA256": "67ae3860f31dc194d557d196ecf68d984e905ddb196d45afea308dea93e16a1c",
+  "createdAt": "2026-08-09T20:56:55Z",
   "encryption": "OpenPGP symmetric AES-256 with integrity protection",
   "includedPaths": [
     "fixtures/api/v1",
