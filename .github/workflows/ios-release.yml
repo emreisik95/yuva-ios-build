@@ -116,6 +116,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +e
           xcodebuild test-without-building \
             -project HomeSystem.xcodeproj \
             -scheme HomeSystem \
@@ -123,6 +124,14 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             -resultBundlePath "$RUNNER_TEMP/tests.xcresult" \
             CODE_SIGNING_ALLOWED=NO
+          test_status=$?
+          set -e
+          if [ "$test_status" -ne 0 ]; then
+            xcrun xcresulttool get test-results summary \
+              --path "$RUNNER_TEMP/tests.xcresult" \
+              --compact || true
+          fi
+          exit "$test_status"
 
       - name: Install isolated signing identity and profile
         shell: bash
